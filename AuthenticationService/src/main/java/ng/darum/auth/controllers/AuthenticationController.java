@@ -1,0 +1,158 @@
+package ng.darum.auth.controllers;
+
+import jakarta.servlet.http.HttpServletRequest;
+import ng.darum.auth.dto.ErrorResponse;
+import ng.darum.auth.dto.UserRequest;
+import ng.darum.auth.dto.UserResponse;
+import ng.darum.auth.services.AuthenticationService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.ZonedDateTime;
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/auth")
+public class AuthenticationController {
+
+    @Autowired
+    private AuthenticationService authenticationService;
+
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@RequestBody UserRequest request, HttpServletRequest httpRequest) {
+        try {
+            UserResponse response = authenticationService.createUser(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (Exception e) {
+            return handleException(e, httpRequest, "USER_REGISTRATION");
+        }
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> loginUser(@RequestBody UserRequest request, HttpServletRequest httpRequest) {
+        try {
+            UserResponse response = authenticationService.loginUser(request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return handleException(e, httpRequest, "USER_LOGIN");
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long id, HttpServletRequest httpRequest) {
+        try {
+            String result = authenticationService.deleteUser(id);
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return handleException(e, httpRequest, "DELETE_USER");
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UserRequest request, HttpServletRequest httpRequest) {
+        try {
+            UserResponse response = authenticationService.updateUser(id, request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return handleException(e, httpRequest, "UPDATE_USER");
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> findUserById(@PathVariable Long id, HttpServletRequest httpRequest) {
+        try {
+            UserResponse response = authenticationService.findUserById(id);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return handleException(e, httpRequest, "FIND_USER_BY_ID");
+        }
+    }
+
+    // Exception handling methods
+    private ResponseEntity<ErrorResponse> handleException(Exception e, HttpServletRequest request, String operation) {
+        String errorId = UUID.randomUUID().toString();
+        String path = request.getRequestURI();
+
+        // Determine HTTP status based on exception type
+        HttpStatus status = determineHttpStatus(e);
+        String errorCode = determineErrorCode(e, operation);
+        String userMessage = e.getMessage();
+
+        // Create error response
+        ErrorResponse errorResponse = new ErrorResponse(
+                status.value(),
+                errorCode,
+                userMessage,
+                path,
+                ZonedDateTime.now(),
+                errorId
+        );
+
+        // Add additional details for debugging
+        errorResponse.addDetail("operation", operation);
+        errorResponse.addDetail("exceptionType", e.getClass().getSimpleName());
+
+        // Log the error with all details
+        logError(errorId, operation, path, e);
+
+        return new ResponseEntity<>(errorResponse, status);
+    }
+
+    /** Determine HTTP status based on exception type */
+    private HttpStatus determineHttpStatus(Exception e) {
+        if (e instanceof IllegalArgumentException) {
+            return HttpStatus.BAD_REQUEST;
+        } else if (e instanceof RuntimeException) {
+            String message = e.getMessage();
+            if (message != null) {
+                if (message.contains("already exists") || message.contains("already exists with this email")) {
+                    return HttpStatus.CONFLICT;
+                } else if (message.contains("not found") || message.contains("No user") || message.contains("No User")) {
+                    return HttpStatus.NOT_FOUND;
+                } else if (message.contains("password") || message.contains("Incorrect")) {
+                    return HttpStatus.UNAUTHORIZED;
+                }
+            }
+            return HttpStatus.BAD_REQUEST;
+        } else {
+            return HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+    }
+
+    /** Determine error code based on exception and operation */
+    private String determineErrorCode(Exception e, String operation) {
+        if (e instanceof IllegalArgumentException) {
+            return "INVALID_INPUT";
+        } else if (e instanceof RuntimeException) {
+            String message = e.getMessage();
+            if (message != null) {
+                if (message.contains("already exists")) {
+                    return "USER_ALREADY_EXISTS";
+                } else if (message.contains("not found") || message.contains("No user")) {
+                    return "USER_NOT_FOUND";
+                } else if (message.contains("password") || message.contains("Incorrect")) {
+                    return "INVALID_CREDENTIALS";
+                }
+            }
+            return "AUTHENTICATION_ERROR";
+        } else {
+            return "INTERNAL_ERROR";
+        }
+    }
+
+    /** Log errors with consistent format */
+    private void logError(String errorId, String operation, String path, Exception e) {
+        System.err.printf("""
+            ERROR [%s]
+            Operation: %s
+            Path: %s
+            Exception: %s
+            Message: %s
+            StackTrace:
+            """, errorId, operation, path, e.getClass().getSimpleName(), e.getMessage());
+
+        e.printStackTrace();
+    }
+}
