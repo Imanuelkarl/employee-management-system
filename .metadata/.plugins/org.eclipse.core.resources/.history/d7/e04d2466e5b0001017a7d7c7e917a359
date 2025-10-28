@@ -1,0 +1,17 @@
+spring.application.name=EmployeeManagementService
+
+# For PostgreSQL Neon DB
+#spring.datasource.url=jdbc:postgresql://ep-super-firefly-aew08ls9-pooler.c-2.us-east-2.aws.neon.tech/dailyads_db?user=neondb_owner&password=npg_lepmSvaA32nK&sslmode=require
+#spring.datasource.username=neondb_owner
+#spring.datasource.password=npg_lepmSvaA32nK
+#spring.datasource.driver-class-name=org.postgresql.Driver
+#spring.jpa.hibernate.ddl-auto=update
+#spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+
+# For PostgreSQL for Localhost
+#spring.datasource.url=jdbc:postgresql://localhost:5432/dailyads_db?user=dailyadsmarketplace&password=Alcatr@z911$&useSSL=false
+#spring.datasource.username=dailyadsmarketplace
+#spring.datasource.password=Alcatr@z911$
+#spring.datasource.driver-class-name=org.postgresql.Driver
+#spring.jpa.hibernate.ddl-auto=update
+#spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
