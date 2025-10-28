@@ -1,8 +1,56 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Environment-dependent path to Maven home directory
-/mavenHomeManager.xml
-/metadata
-/idea
+# ===========================================
+# IDE / Editor Folders
+# ===========================================
+# Eclipse
 .metadata/
+bin/
+.settings/
+.gitignore
+
+# IntelliJ IDEA / Android Studio
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# ===========================================
+# Build Output
+# ===========================================
+target/
+out/
+build/
+dist/
+
+# ===========================================
+# Logs / Temporary Files
+# ===========================================
+*.log
+*.tmp
+*.swp
+*.bak
+
+# ===========================================
+# OS Specific Files
+# ===========================================
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# ===========================================
+# Dependency Caches
+# ===========================================
+.gradle/
+.mvn/
+node_modules/
+
+# ===========================================
+# Miscellaneous
+# ===========================================
+# Local environment variables or secrets
+.env
+*.local
+
+# Backup files
+*~
