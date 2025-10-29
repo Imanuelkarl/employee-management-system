@@ -1,34 +1,56 @@
 package ng.darum.employee.repository;
 
 import ng.darum.employee.entity.Employee;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jdbc.EmbeddedDatabaseConnection;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 @DataJpaTest
-@AutoConfigureTestDatabase( connection = EmbeddedDatabaseConnection.H2)
-public class EmployeeRepositoryTests {
+class EmployeeRepositoryTest {
+
     @Autowired
-    EmployeeRepository employeeRepository;
+    private EmployeeRepository employeeRepository;
 
     @Test
-    public void EmployeeRepository_SaveAll_ReturnSavedEmployee(){
-        //Arrange
-        Employee employee = Employee.builder()
-                .firstName("Emmanuel")
-                .lastName("Dozie")
-                .department("ICT")
-                .userId(1L)
+    void testFindByDepartmentId_ShouldReturnEmployeesInSameDepartment() {
+        // Arrange
+        Employee emp1 = Employee.builder()
+                .firstName("Alice")
+                .lastName("Smith")
+                .employeeId("EMP001")
+                .departmentId(100L)
+                .status("ACTIVE")
                 .build();
 
-        //Act
-        Employee savedEmployee = employeeRepository.save(employee);
+        Employee emp2 = Employee.builder()
+                .firstName("Bob")
+                .lastName("Johnson")
+                .employeeId("EMP002")
+                .departmentId(100L)
+                .status("ACTIVE")
+                .build();
 
-        //Assert
-        Assertions.assertThat(savedEmployee).isNotNull();
-        Assertions.assertThat(savedEmployee.getId()).isGreaterThan(0);
+        Employee emp3 = Employee.builder()
+                .firstName("Charlie")
+                .lastName("Brown")
+                .employeeId("EMP003")
+                .departmentId(200L)
+                .status("ACTIVE")
+                .build();
+
+        employeeRepository.saveAll(List.of(emp1, emp2, emp3));
+
+        // Act
+        List<Employee> departmentEmployees = employeeRepository.findByDepartmentId(100L);
+
+        // Assert
+        assertThat(departmentEmployees).hasSize(2);
+        assertThat(departmentEmployees)
+                .extracting(Employee::getEmployeeId)
+                .containsExactlyInAnyOrder("EMP001", "EMP002");
     }
 }

@@ -29,6 +29,7 @@ public class Department {
 	
 	private String name;
 	private String slug;
+	private String description;
 	@CreationTimestamp
 	@Column(updatable = false)
 	LocalDateTime createdAt;

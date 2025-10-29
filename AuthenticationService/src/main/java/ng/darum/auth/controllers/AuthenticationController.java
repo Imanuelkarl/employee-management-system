@@ -24,15 +24,6 @@ public class AuthenticationController {
     @Autowired
     private AuthenticationService authenticationService;
 
-    @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody UserRequest request, HttpServletRequest httpRequest) {
-        try {
-            UserResponse response = authenticationService.createUser(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } catch (Exception e) {
-            return handleException(e, httpRequest, "USER_REGISTRATION");
-        }
-    }
 
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody UserRequest request, HttpServletRequest httpRequest, HttpServletResponse response) {
@@ -56,35 +47,6 @@ public class AuthenticationController {
         }
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id, HttpServletRequest httpRequest) {
-        try {
-            String result = authenticationService.deleteUser(id);
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return handleException(e, httpRequest, "DELETE_USER");
-        }
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UserRequest request, HttpServletRequest httpRequest) {
-        try {
-            UserResponse response = authenticationService.updateUser(id, request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return handleException(e, httpRequest, "UPDATE_USER");
-        }
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<?> findUserById(@PathVariable Long id, HttpServletRequest httpRequest) {
-        try {
-            UserResponse response = authenticationService.findUserById(id);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return handleException(e, httpRequest, "FIND_USER_BY_ID");
-        }
-    }
 
     // Exception handling methods
     private ResponseEntity<ErrorResponse> handleException(Exception e, HttpServletRequest request, String operation) {

@@ -40,7 +40,7 @@ public class EmployeeService {
 				.build();
 
 		kafkaProducerService.publishUserCreatedEvent(event);
-		return employee;
+		return saved;
 	}
 
 	//update department
