@@ -48,12 +48,6 @@ services:
       - "8888:8888"
     environment:
       SPRING_PROFILES_ACTIVE: docker
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
 
   discovery-service:
     build:
@@ -63,17 +57,10 @@ services:
     ports:
       - "8761:8761"
     depends_on:
-      config-server:
-        condition: service_healthy
+      - config-server
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
 
   # Business Services (depend on config and discovery)
   auth-service:
@@ -84,23 +71,14 @@ services:
     ports:
       - "8083:8083"
     depends_on:
-      config-server:
-        condition: service_healthy
-      discovery-service:
-        condition: service_healthy
-      kafka:
-        condition: service_started
+      - config-server
+      - discovery-service
+      - kafka
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://discovery-service:8761/eureka"
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
 
   employee-service:
     build:
@@ -110,23 +88,14 @@ services:
     ports:
       - "8081:8081"
     depends_on:
-      config-server:
-        condition: service_healthy
-      discovery-service:
-        condition: service_healthy
-      kafka:
-        condition: service_started
+      - config-server
+      - discovery-service
+      - kafka
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://discovery-service:8761/eureka"
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
 
   api-service:
     build:
@@ -136,20 +105,11 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      config-server:
-        condition: service_healthy
-      discovery-service:
-        condition: service_healthy
-      kafka:
-        condition: service_started
+      - config-server
+      - discovery-service
+      - kafka
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_CONFIG_IMPORT: "configserver:http://config-server:8888"
       EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://discovery-service:8761/eureka"
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
