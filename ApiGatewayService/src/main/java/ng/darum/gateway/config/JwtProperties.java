@@ -1,4 +1,17 @@
-package ng.darum.gateway.components;
+package ng.darum.gateway.config;
 
+import lombok.Data;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
+/**
+ * Loads JWT-related properties from application.properties.
+ */
+@Data
+@Configuration
+@ConfigurationProperties(prefix = "jwt")
 public class JwtProperties {
+    private String secret;
+    private long expiration;
 }
+

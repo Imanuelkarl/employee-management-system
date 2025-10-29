@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import ng.darum.auth.enums.Role;
 
 @Data
 @AllArgsConstructor
@@ -12,7 +13,7 @@ import lombok.NoArgsConstructor;
 public class UserCreatedEvent {
     private Long userId;
     private String email;
-    private String role;
+    private Role role;
     private String firstName;
     private String lastName;
     private String employeeId;

@@ -1,7 +1,7 @@
-package ng.darum.auth.services;
+package ng.darum.employee.service;
 
 import lombok.extern.slf4j.Slf4j;
-import ng.darum.auth.dto.UserCreatedEvent;
+import ng.darum.commons.dto.UserCreatedEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -20,6 +20,6 @@ public class KafkaProducerService {
 
     public void publishUserCreatedEvent(UserCreatedEvent event) {
         log.info("Publishing event to Kafka: {}", event);
-        kafkaTemplate.send(userCreatedTopic, String.valueOf(event.getUserId()), event);
+        kafkaTemplate.send(userCreatedTopic, String.valueOf(event.getEmail()), event);
     }
 }

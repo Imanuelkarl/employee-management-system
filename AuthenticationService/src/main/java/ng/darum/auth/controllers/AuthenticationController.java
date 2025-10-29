@@ -1,20 +1,24 @@
 package ng.darum.auth.controllers;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import ng.darum.auth.dto.AuthResponse;
 import ng.darum.auth.dto.ErrorResponse;
 import ng.darum.auth.dto.UserRequest;
 import ng.darum.auth.dto.UserResponse;
 import ng.darum.auth.services.AuthenticationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/auth")
 public class AuthenticationController {
 
     @Autowired
@@ -31,10 +35,22 @@ public class AuthenticationController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody UserRequest request, HttpServletRequest httpRequest) {
+    public ResponseEntity<?> loginUser(@RequestBody UserRequest request, HttpServletRequest httpRequest, HttpServletResponse response) {
         try {
-            UserResponse response = authenticationService.loginUser(request);
-            return ResponseEntity.ok(response);
+            AuthResponse authResponse = authenticationService.loginUser(request);
+            String accessToken = authResponse.getToken();
+            ResponseCookie cookie = ResponseCookie.from("access_token", accessToken)
+                    .httpOnly(true)
+                    .secure(true)
+                    .path("/")
+                    .sameSite("Strict")
+                    .maxAge(7 * 24 * 60 * 60)
+                    .build();
+
+            response.addHeader("Set-Cookie", cookie.toString());
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                    .body(authResponse);
         } catch (Exception e) {
             return handleException(e, httpRequest, "USER_LOGIN");
         }

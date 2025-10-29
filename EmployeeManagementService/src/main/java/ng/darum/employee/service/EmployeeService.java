@@ -1,6 +1,7 @@
 package ng.darum.employee.service;
 
 import lombok.extern.slf4j.Slf4j;
+import ng.darum.commons.dto.UserCreatedEvent;
 import ng.darum.employee.dto.EmployeeRequest;
 import ng.darum.employee.dto.ServerResponse;
 import ng.darum.employee.entity.Department;
@@ -20,19 +21,26 @@ public class EmployeeService {
 	@Autowired
 	EmployeeRepository employeeRepository;
 
-	public ServerResponse<Object> createEmployee(EmployeeRequest employeeRequest){
+	@Autowired
+	KafkaProducerService kafkaProducerService;
+
+	public Employee createEmployee(EmployeeRequest employeeRequest){
 		Employee employee = Employee.builder()
 				.firstName(employeeRequest.getFirstName())
 				.lastName(employeeRequest.getLastName())
 				.employeeId(employeeRequest.getEmployeeId())
-				.department(employeeRequest.getDepartment())
+				.departmentId(employeeRequest.getDepartmentId())
 				.build();
 		copyNonNullProperties(employeeRequest,employee);
 		Employee saved=employeeRepository.save(employee);
-		return ServerResponse.builder()
-						.status("success")
-						.message("Employee created successfully")
-						.data(saved).build();
+		UserCreatedEvent event = UserCreatedEvent.builder()
+				.email(employeeRequest.getEmail())
+				.password(employeeRequest.getPassword())
+				.role(employeeRequest.getRole())
+				.build();
+
+		kafkaProducerService.publishUserCreatedEvent(event);
+		return employee;
 	}
 
 	//update department
@@ -87,4 +95,7 @@ public class EmployeeService {
 		}
 	}
 
+	public List<Employee> getDepartmentEmployees(Long departmentId) {
+		return employeeRepository.findByDepartmentId(departmentId);
+	}
 }

@@ -2,147 +2,104 @@ package ng.darum.employee.controllers;
 
 import jakarta.servlet.http.HttpServletRequest;
 import ng.darum.employee.dto.EmployeeRequest;
-import ng.darum.employee.dto.ErrorResponse;
-import ng.darum.employee.dto.ServerResponse;
 import ng.darum.employee.entity.Employee;
 import ng.darum.employee.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.ZonedDateTime;
-import java.util.UUID;
-
+/**
+ * Employee controller handling CRUD operations for employees.
+ * Extends BaseController to inherit standardized response handling.
+ */
 @RestController
-@RequestMapping("/employee")
-public class EmployeeController {
-    @Autowired
-    EmployeeService employeeService;
+@RequestMapping("/employees")
+public class EmployeeController extends BaseController {
 
-    @PostMapping("/create")
-    public ResponseEntity<ServerResponse<Object>> createEmployee(@RequestBody EmployeeRequest request){
-        return ResponseEntity.ok(employeeService.createEmployee(request));
-    }
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateDepartment(@PathVariable Long id,@RequestBody  Employee employee, HttpServletRequest request){
+    @Autowired
+    private EmployeeService employeeService;
+
+    /**
+     * Creates a new employee
+     */
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> createEmployee(@RequestBody EmployeeRequest request, HttpServletRequest httpRequest) {
         try {
-            return ResponseEntity.ok(employeeService.updateEmployee(id,employee));
-        }catch (Exception e){
-            return handleException(e,request,"UPDATE_ENTITY");
+            Employee response = employeeService.createEmployee(request);
+            return buildCreated("Employee created successfully", response);
+        } catch (Exception e) {
+            return handleException(e, httpRequest, "CREATE_EMPLOYEE");
         }
     }
 
+    /**
+     * Updates an existing employee by ID
+     */
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> updateEmployee(@PathVariable Long id, @RequestBody Employee employee,
+                                            HttpServletRequest request) {
+        try {
+            Object response = employeeService.updateEmployee(id, employee);
+            return buildSuccess("Employee updated successfully", response);
+        } catch (Exception e) {
+            return handleException(e, request, "UPDATE_EMPLOYEE");
+        }
+    }
+
+    /**
+     * Deletes an employee by ID
+     */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteEmployee(@PathVariable Long id,HttpServletRequest request){
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> deleteEmployee(@PathVariable Long id, HttpServletRequest request) {
         try {
             employeeService.deleteEmployee(id);
-            return ResponseEntity.ok("Success");
-        }catch (Exception e){
-            return handleException(e,request,"DELETE_ENTITY");
+            return buildNoContent("Employee deleted successfully");
+        } catch (Exception e) {
+            return handleException(e, request, "DELETE_EMPLOYEE");
         }
     }
 
+    /**
+     * Finds an employee by ID
+     */
     @GetMapping("/{id}")
-    public ResponseEntity<?> findEmployee(@PathVariable Long id,HttpServletRequest request){
+    public ResponseEntity<?> findEmployee(@PathVariable Long id, HttpServletRequest request) {
         try {
-            return ResponseEntity.ok(employeeService.findEmployeeById(id));
-        }catch (Exception e){
-            return handleException(e,request,"FIND_ENTITY_BY_ID");
+            Object response = employeeService.findEmployeeById(id);
+            return buildSuccess("Employee fetched successfully", response);
+        } catch (Exception e) {
+            return handleException(e, request, "FIND_EMPLOYEE_BY_ID");
         }
     }
 
+    /**
+     * Retrieves all employees
+     */
     @GetMapping
-    public ResponseEntity<?> getAllEmployee(HttpServletRequest request){
-
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getAllEmployees(HttpServletRequest request) {
         try {
-            return ResponseEntity.ok(employeeService.getAllEmployees());
-        }catch (Exception e){
-            return handleException(e,request,"GET_ALL_ENTITY");
-        }
-    }
-    private <T> ResponseEntity<ng.darum.commons.dto.ServerResponse<T>> buildSuccess(String message, T data, HttpStatus status) {
-        ng.darum.commons.dto.ServerResponse<T> body = ng.darum.commons.dto.ServerResponse.<T>builder()
-                .status("success")
-                .message(message)
-                .data(data)
-                .timestamp(ZonedDateTime.now())
-                .build();
-
-        return new ResponseEntity<>(body, status);
-    }
-    private ResponseEntity<ErrorResponse> handleException(Exception e, HttpServletRequest request, String operation) {
-        String errorId = UUID.randomUUID().toString();
-        String path = request.getRequestURI();
-
-        // Determine HTTP status based on exception type
-        HttpStatus status = determineHttpStatus(e);
-        String errorCode = determineErrorCode(e, operation);
-        String userMessage = e.getMessage();
-
-        // Create error response
-        ErrorResponse errorResponse = new ErrorResponse(
-                status.value(),
-                errorCode,
-                userMessage,
-                path,
-                ZonedDateTime.now(),
-                errorId
-        );
-
-        // Add additional details for debugging
-        errorResponse.addDetail("operation", operation);
-        errorResponse.addDetail("exceptionType", e.getClass().getSimpleName());
-
-        // Log the error with all details
-        logError(errorId, operation, path, e);
-
-        return new ResponseEntity<>(errorResponse, status);
-    }
-
-    /** Determine HTTP status based on exception type */
-    private HttpStatus determineHttpStatus(Exception e) {
-        if (e instanceof IllegalArgumentException) {
-            return HttpStatus.BAD_REQUEST;
-        } else if (e instanceof java.util.NoSuchElementException) {
-            return HttpStatus.NOT_FOUND;
-        } else if (e instanceof UnsupportedOperationException) {
-            return HttpStatus.NOT_IMPLEMENTED;
-        } else if (e instanceof org.springframework.dao.DataIntegrityViolationException) {
-            return HttpStatus.CONFLICT;
-       /* } else if (e instanceof org.springframework.security.access.AccessDeniedException) {
-            return HttpStatus.FORBIDDEN;*/
-        } else {
-            return HttpStatus.INTERNAL_SERVER_ERROR;
+            return buildSuccess("Employees retrieved successfully", employeeService.getAllEmployees());
+        } catch (Exception e) {
+            return handleException(e, request, "GET_ALL_EMPLOYEES");
         }
     }
 
-    /** Determine error code based on exception and operation */
-    private String determineErrorCode(Exception e, String operation) {
-        if (e instanceof IllegalArgumentException) {
-            return "INVALID_INPUT";
-        } else if (e instanceof java.util.NoSuchElementException) {
-            return "RESOURCE_NOT_FOUND";
-        } else if (e instanceof UnsupportedOperationException) {
-            return "FEATURE_NOT_IMPLEMENTED";
-        } else {
-            return "INTERNAL_ERROR";
+    /**
+     * Retrieves employees by department ID
+     */
+    @GetMapping("/department/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> getDepartmentEmployees(@PathVariable Long id, HttpServletRequest request) {
+        try {
+            return buildSuccess("Department employees retrieved successfully",
+                    employeeService.getDepartmentEmployees(id));
+        } catch (Exception e) {
+            return handleException(e, request, "GET_DEPARTMENT_EMPLOYEES");
         }
     }
-
-    /** Log errors with consistent format */
-    private void logError(String errorId, String operation, String path, Exception e) {
-        System.err.printf("""
-            ERROR [%s]
-            Operation: %s
-            Path: %s
-            Exception: %s
-            Message: %s
-            StackTrace:
-            """, errorId, operation, path, e.getClass().getSimpleName(), e.getMessage());
-
-        e.printStackTrace();
-    }
-
-
 }

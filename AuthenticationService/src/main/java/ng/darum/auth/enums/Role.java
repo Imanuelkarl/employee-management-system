@@ -1,4 +1,14 @@
 package ng.darum.auth.enums;
 
-public class Role {
+import org.springframework.security.core.GrantedAuthority;
+
+public enum Role implements GrantedAuthority {
+    ADMIN,
+    EMPLOYEE,
+    MANAGER;
+
+    @Override
+    public String getAuthority() {
+        return this.name();
+    }
 }

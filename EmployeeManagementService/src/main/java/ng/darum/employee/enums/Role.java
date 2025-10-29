@@ -1,4 +1,4 @@
-package ng.darum.auth.enums;
+package ng.darum.employee.enums;
 
 import org.springframework.security.core.GrantedAuthority;
 

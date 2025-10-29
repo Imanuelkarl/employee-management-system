@@ -8,5 +8,6 @@ import ng.darum.employee.entity.Employee;
 
 public interface EmployeeRepository extends JpaRepository<Employee,Long> {
 
-	List<Employee> findByDepartment(String department);
+
+    List<Employee> findByDepartmentId(Long departmentId);
 }

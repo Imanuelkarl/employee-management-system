@@ -31,7 +31,7 @@ public class Employee {
 	private String firstName;
 	private String lastName;
 	private String status;
-	private String department;
+	private Long departmentId;
 	
 	@CreationTimestamp
 	@Column(updatable = false)

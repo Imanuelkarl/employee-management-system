@@ -1,11 +1,13 @@
 package ng.darum.commons.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import ng.darum.auth.enums.Role;
+import ng.darum.employee.enums.Role;
 
 @Data
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserCreatedEvent {
