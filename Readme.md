@@ -53,7 +53,7 @@ Before running, ensure you have:
 
 ### 🔸 2. Clone the Repository
 ```bash
-git clone https://github.com/<your-username>/employee-management-system.git
+git clone https://github.com/Imanuelkarl/employee-management-system.git
 cd employee-management-system
 
 mvn clean install -DskipTests
