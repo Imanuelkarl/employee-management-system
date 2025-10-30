@@ -4,7 +4,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import ng.darum.auth.dto.AuthResponse;
 import ng.darum.auth.dto.UserRequest;
-import ng.darum.auth.dto.UserResponse;
 import ng.darum.auth.services.AuthenticationService;
 import ng.darum.commons.dto.ErrorResponse;
 import ng.darum.commons.dto.ServerResponse;

@@ -7,6 +7,7 @@ import ng.darum.employee.entity.Employee;
 import ng.darum.employee.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -74,12 +75,31 @@ public class EmployeeController extends BaseController {
     @GetMapping("/{id}")
     public ResponseEntity<?> findEmployee(@PathVariable Long id, HttpServletRequest request) {
         try {
-            Object response = employeeService.findEmployeeById(id);
-            return buildSuccess("Employee fetched successfully", response);
+            String userEmail = jwtUtil.extractEmail(request);
+            String role = jwtUtil.extractRole(request);
+            Employee requester = employeeService.findEmployeeByEmail(userEmail);
+            Employee target = employeeService.findEmployeeById(id);
+
+            // === ACCESS CONTROL ===
+            boolean isAdmin = role.equalsIgnoreCase("ADMIN");
+            boolean isManager = role.equalsIgnoreCase("MANAGER");
+            boolean isSelf = Objects.equals(requester.getId(), target.getId());
+            boolean sameDepartment = Objects.equals(requester.getDepartmentId(), target.getDepartmentId());
+
+            // Employees can only see themselves
+            // Managers can see employees in their own department
+            // Admins can see everyone
+            if (!(isAdmin || (isManager && sameDepartment) || isSelf)) {
+                throw new AccessDeniedException("You can't access this employee's info");
+            }
+
+            return buildSuccess("Employee fetched successfully", target);
+
         } catch (Exception e) {
             return handleException(e, request, "FIND_EMPLOYEE_BY_ID");
         }
     }
+
 
     /**
      * Retrieves all employees
@@ -101,12 +121,15 @@ public class EmployeeController extends BaseController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<?> getDepartmentEmployees(@PathVariable Long id, HttpServletRequest request) {
         try {
-            /*String userEmail = jwtUtil.extractEmail(extractToken(request));    // extract role from JWT claims
-            String role = jwtUtil.extractRole(extractToken(request));
+            String userEmail = jwtUtil.extractEmail(request);    // extract role from JWT claims
+            String role = jwtUtil.extractRole(request);
+            System.out.println(role);
             Employee employee =employeeService.findEmployeeByEmail(userEmail);
-            if(!Objects.equals(employee.getDepartmentId(), id)||!role.equalsIgnoreCase("ADMIN")){
-                throw new IllegalAccessException("You can't access this department Info");
-            }*/
+
+            if (!role.equalsIgnoreCase("ADMIN") && !Objects.equals(employee.getDepartmentId(), id)) {
+                throw new AccessDeniedException("You can't access this department Info");
+            }
+
 
             return buildSuccess("Department employees retrieved successfully",
                     employeeService.getDepartmentEmployees(id));
@@ -115,12 +138,6 @@ public class EmployeeController extends BaseController {
             return handleException(e, request, "GET_DEPARTMENT_EMPLOYEES");
         }
     }
-    public String extractToken(HttpServletRequest request) {
-        String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith("Bearer ")) {
-            return header.substring(7);
-        }
-        throw new RuntimeException("Missing or invalid Authorization header");
-    }
+
 
 }

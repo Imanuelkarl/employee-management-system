@@ -1,6 +1,7 @@
 package ng.darum.employee.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
 import ng.darum.employee.component.JwtUtil;
 import ng.darum.employee.config.SecurityConfig;
 import ng.darum.employee.controllers.EmployeeController;
@@ -139,17 +140,127 @@ class EmployeeControllerTest {
     // FIND EMPLOYEE BY ID
     // ---------------------------
     @Test
-    @WithMockUser(roles = "USER")
-    void shouldFindEmployeeByIdSuccessfully() throws Exception {
-        Mockito.when(employeeService.findEmployeeById(1L))
-                .thenReturn(mockEmployee);
+    @WithMockUser(username = "admin@example.com", roles = "ADMIN")
+    void shouldAllowAdminToAccessAnyEmployee() throws Exception {
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
 
-        mockMvc.perform(get("/employees/1"))
+        Employee admin = new Employee();
+        admin.setId(1L);
+        admin.setEmail("admin@example.com");
+        admin.setDepartmentId(1L);
+
+        Employee target = new Employee();
+        target.setId(5L);
+        target.setEmail("user@example.com");
+        target.setDepartmentId(3L);
+
+        when(jwtUtil.extractEmail(any(HttpServletRequest.class))).thenReturn("admin@example.com");
+        when(jwtUtil.extractRole(any(HttpServletRequest.class))).thenReturn("ADMIN");
+        when(employeeService.findEmployeeByEmail("admin@example.com")).thenReturn(admin);
+        when(employeeService.findEmployeeById(5L)).thenReturn(target);
+
+        mockMvc.perform(get("/employees/5").requestAttr("javax.servlet.request", mockRequest))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Employee fetched successfully"))
-                .andExpect(jsonPath("$.data.firstName").value("John"))
-                .andExpect(jsonPath("$.data.employeeId").value("EMP001"));
+                .andExpect(jsonPath("$.message").value("Employee fetched successfully"));
     }
+
+
+    @Test
+    @WithMockUser(username = "manager@example.com", roles = "MANAGER")
+    void shouldAllowManagerToAccessEmployeeInSameDepartment() throws Exception {
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
+        Employee manager = new Employee();
+        manager.setId(2L);
+        manager.setEmail("manager@example.com");
+        manager.setDepartmentId(10L);
+
+        Employee target = new Employee();
+        target.setId(3L);
+        target.setEmail("staff@example.com");
+        target.setDepartmentId(10L); // same department
+
+        when(jwtUtil.extractEmail(any(HttpServletRequest.class))).thenReturn("manager@example.com");
+        when(jwtUtil.extractRole(any(HttpServletRequest.class))).thenReturn("MANAGER");
+        when(employeeService.findEmployeeByEmail("manager@example.com")).thenReturn(manager);
+        when(employeeService.findEmployeeById(3L)).thenReturn(target);
+
+        mockMvc.perform(get("/employees/3").requestAttr("javax.servlet.request", mockRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Employee fetched successfully"));
+    }
+
+
+    @Test
+    @WithMockUser(username = "manager@example.com", roles = "MANAGER")
+    void shouldRejectManagerAccessingEmployeeFromOtherDepartment() throws Exception {
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
+        Employee manager = new Employee();
+        manager.setId(2L);
+        manager.setEmail("manager@example.com");
+        manager.setDepartmentId(10L);
+
+        Employee target = new Employee();
+        target.setId(4L);
+        target.setEmail("other@example.com");
+        target.setDepartmentId(20L); // different department
+
+        when(jwtUtil.extractEmail(any(HttpServletRequest.class))).thenReturn("manager@example.com");
+        when(jwtUtil.extractRole(any(HttpServletRequest.class))).thenReturn("MANAGER");
+        when(employeeService.findEmployeeByEmail("manager@example.com")).thenReturn(manager);
+        when(employeeService.findEmployeeById(4L)).thenReturn(target);
+
+        mockMvc.perform(get("/employees/4").requestAttr("javax.servlet.request", mockRequest))
+                .andExpect(status().isForbidden());
+    }
+
+
+    @Test
+    @WithMockUser(username = "employee@example.com", roles = "EMPLOYEE")
+    void shouldAllowEmployeeToAccessOwnInfoOnly() throws Exception {
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
+        Employee employee = new Employee();
+        employee.setId(5L);
+        employee.setEmail("employee@example.com");
+        employee.setDepartmentId(15L);
+
+        when(jwtUtil.extractEmail(any(HttpServletRequest.class))).thenReturn("employee@example.com");
+        when(jwtUtil.extractRole(any(HttpServletRequest.class))).thenReturn("EMPLOYEE");
+        when(employeeService.findEmployeeByEmail("employee@example.com")).thenReturn(employee);
+        when(employeeService.findEmployeeById(5L)).thenReturn(employee);
+
+        mockMvc.perform(get("/employees/5").requestAttr("javax.servlet.request", mockRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Employee fetched successfully"));
+    }
+
+
+    @Test
+    @WithMockUser(username = "employee@example.com", roles = "EMPLOYEE")
+    void shouldRejectEmployeeAccessingOthersInfo() throws Exception {
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
+        Employee employee = new Employee();
+        employee.setId(5L);
+        employee.setEmail("employee@example.com");
+        employee.setDepartmentId(15L);
+
+        Employee target = new Employee();
+        target.setId(6L);
+        target.setEmail("other@example.com");
+        target.setDepartmentId(15L);
+
+        when(jwtUtil.extractEmail(any(HttpServletRequest.class))).thenReturn("employee@example.com");
+        when(jwtUtil.extractRole(any(HttpServletRequest.class))).thenReturn("EMPLOYEE");
+        when(employeeService.findEmployeeByEmail("employee@example.com")).thenReturn(employee);
+        when(employeeService.findEmployeeById(6L)).thenReturn(target);
+
+        mockMvc.perform(get("/employees/6").requestAttr("javax.servlet.request", mockRequest))
+                .andExpect(status().isForbidden());
+    }
+
 
     // ---------------------------
     // GET ALL EMPLOYEES
@@ -165,21 +276,7 @@ class EmployeeControllerTest {
                 .andExpect(jsonPath("$.message").value("Employees retrieved successfully"))
                 .andExpect(jsonPath("$.data[0].firstName").value("John"));
     }
-
-    // ---------------------------
-    // GET EMPLOYEES BY DEPARTMENT
-    // ---------------------------
-    @Test
-    @WithMockUser(roles = "ADMIN")
-    void shouldGetDepartmentEmployeesSuccessfully() throws Exception {
-        Mockito.when(employeeService.getDepartmentEmployees(10L))
-                .thenReturn(List.of(mockEmployee));
-
-        mockMvc.perform(get("/employees/department/10"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Department employees retrieved successfully"))
-                .andExpect(jsonPath("$.data[0].employeeId").value("EMP001"));
-    }
+    
     // ---------------------------
     // GET DEPARTMENT EMPLOYEES (Access control logic)
     // ---------------------------
@@ -187,59 +284,72 @@ class EmployeeControllerTest {
     @Test
     @WithMockUser(username = "admin@example.com", roles = "ADMIN")
     void shouldAllowAdminToAccessAnyDepartment() throws Exception {
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
+        Employee admin = new Employee();
+        admin.setId(1L);
+        admin.setEmail("admin@example.com");
+        admin.setDepartmentId(1L);
+
+        when(jwtUtil.extractEmail(any(HttpServletRequest.class))).thenReturn("admin@example.com");
+        when(jwtUtil.extractRole(any(HttpServletRequest.class))).thenReturn("ADMIN");
+        when(employeeService.findEmployeeByEmail("admin@example.com")).thenReturn(admin);
+
         Mockito.when(employeeService.getDepartmentEmployees(20L))
                 .thenReturn(List.of(mockEmployee));
 
-        when(jwtUtil.extractEmail(any())).thenReturn("admin@example.com");
-        when(jwtUtil.extractRole(any())).thenReturn("ADMIN");
-
-        mockMvc.perform(get("/employees/department/20"))
+        mockMvc.perform(get("/employees/department/20")
+                        .requestAttr("javax.servlet.request", mockRequest))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Department employees retrieved successfully"));
 
         verify(employeeService, times(1)).getDepartmentEmployees(20L);
     }
 
+
     @Test
     @WithMockUser(username = "manager@example.com", roles = "MANAGER")
     void shouldAllowManagerToAccessOwnDepartment() throws Exception {
-        // mock manager employee
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
         Employee manager = new Employee();
         manager.setId(2L);
         manager.setEmail("manager@example.com");
         manager.setDepartmentId(10L);
 
-        when(jwtUtil.extractEmail(any())).thenReturn("manager@example.com");
-        when(jwtUtil.extractRole(any())).thenReturn("MANAGER");
+        when(jwtUtil.extractEmail(any(HttpServletRequest.class))).thenReturn("manager@example.com");
+        when(jwtUtil.extractRole(any(HttpServletRequest.class))).thenReturn("MANAGER");
+        when(employeeService.findEmployeeByEmail("manager@example.com")).thenReturn(manager);
 
-
-        // simulate jwtUtil extraction & service behavior
-        Mockito.when(employeeService.findEmployeeByEmail("manager@example.com"))
-                .thenReturn(manager);
         Mockito.when(employeeService.getDepartmentEmployees(10L))
                 .thenReturn(List.of(mockEmployee));
 
-        mockMvc.perform(get("/employees/department/10"))
+        mockMvc.perform(get("/employees/department/10")
+                        .requestAttr("javax.servlet.request", mockRequest))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Department employees retrieved successfully"))
                 .andExpect(jsonPath("$.data[0].employeeId").value("EMP001"));
     }
 
+
     @Test
     @WithMockUser(username = "manager2@example.com", roles = "MANAGER")
     void shouldRejectManagerFromAccessingOtherDepartment() throws Exception {
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
         Employee manager = new Employee();
+        manager.setId(3L);
         manager.setEmail("manager2@example.com");
-        manager.setDepartmentId(5L); // different department
+        manager.setDepartmentId(5L); // department mismatch
 
-        Mockito.when(employeeService.findEmployeeByEmail("manager2@example.com"))
-                .thenReturn(manager);
-        when(jwtUtil.extractEmail(any())).thenReturn("manager@example.com");
-        when(jwtUtil.extractRole(any())).thenReturn("MANAGER");
+        when(jwtUtil.extractEmail(any(HttpServletRequest.class))).thenReturn("manager2@example.com");
+        when(jwtUtil.extractRole(any(HttpServletRequest.class))).thenReturn("MANAGER");
+        when(employeeService.findEmployeeByEmail("manager2@example.com")).thenReturn(manager);
 
-
-        mockMvc.perform(get("/employees/department/10"))
-                .andExpect(status().isForbidden()); // since they are not from same dept
+        mockMvc.perform(get("/employees/department/10")
+                        .requestAttr("javax.servlet.request", mockRequest))
+                .andExpect(status().isForbidden());
     }
+
 
 }
