@@ -2,10 +2,9 @@ package ng.darum.employee.service;
 
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
-import ng.darum.commons.dto.UserCreatedEvent;
+import ng.darum.commons.dto.UserEvent;
 import ng.darum.employee.config.DefaultAdminConfig;
 import ng.darum.employee.dto.EmployeeRequest;
-import ng.darum.employee.dto.ServerResponse;
 import ng.darum.employee.entity.Department;
 import ng.darum.employee.entity.Employee;
 import ng.darum.employee.enums.Role;
@@ -13,13 +12,10 @@ import ng.darum.employee.repository.DepartmentRepository;
 import ng.darum.employee.repository.EmployeeRepository;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @Slf4j
@@ -75,7 +71,8 @@ public class EmployeeService {
 				.build();
 		copyNonNullProperties(employeeRequest,employee);
 		Employee saved=employeeRepository.save(employee);
-		UserCreatedEvent event = UserCreatedEvent.builder()
+		UserEvent event = UserEvent.builder()
+				.id(saved.getId())
 				.email(employeeRequest.getEmail())
 				.password(employeeRequest.getPassword())
 				.role(employeeRequest.getRole())
@@ -86,24 +83,41 @@ public class EmployeeService {
 	}
 
 	//update department
-	public Employee updateEmployee(Long id, Employee employee){
-		Employee target = employeeRepository.findById(id).orElseThrow(() -> new RuntimeException("Department not found"));
+	public Employee updateEmployee(Long id, EmployeeRequest employee){
+		Employee target = employeeRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee not found"));
+		if(employee.getEmail()!=null||employee.getRole()!=null||employee.getPassword()!=null) {
+			UserEvent event = UserEvent.builder()
+					.id(id)
+					.email(employee.getEmail())
+					.password(employee.getPassword())
+					.role(employee.getRole())
+					.build();
+
+			kafkaProducerService.publishUserUpdatedEvent(event);
+		}
 		copyNonNullProperties(employee,target);
 		return employeeRepository.save(target);
 	}
 
 	//delete department
 	public void deleteEmployee(Long id){
+
 		if(!employeeRepository.existsById(id)){
-			throw new RuntimeException("Department does not exist");
+			throw new RuntimeException("Employee does not exist");
 		}
 		employeeRepository.deleteById(id);
+		UserEvent event = UserEvent.builder()
+				.id(id)
+				.build();
+
+		kafkaProducerService.publishUserDeletedEvent(event);
+
 
 	}
 
 	//get department
 	public Employee findEmployeeById(Long id){
-		return employeeRepository.findById(id).orElseThrow(() -> new RuntimeException("Department not found"));
+		return employeeRepository.findById(id).orElseThrow(() -> new RuntimeException("Employee not found"));
 	}
 
 	//get all departments
@@ -139,5 +153,9 @@ public class EmployeeService {
 
 	public List<Employee> getDepartmentEmployees(Long departmentId) {
 		return employeeRepository.findByDepartmentId(departmentId);
+	}
+
+	public Employee findEmployeeByEmail(String userEmail) {
+		return employeeRepository.findByEmail(userEmail).orElseThrow(()-> new IllegalArgumentException("No employee found with given email"));
 	}
 }

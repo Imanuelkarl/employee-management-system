@@ -20,5 +20,6 @@ public class User {
     private String email;
     private String passHash;
     private Role role;
+    private Long empId;
 
 }

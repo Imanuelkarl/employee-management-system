@@ -13,10 +13,6 @@ import ng.darum.auth.enums.Role;
 public class UserRequest {
     private String email;
     private String password;
+    private Long empId;
     private Role role;
-    private String firstName;
-    private String lastName;
-    private String employeeId;
-    private String status;
-    private String department;
 }

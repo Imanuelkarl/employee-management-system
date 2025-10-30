@@ -3,10 +3,8 @@ package ng.darum.auth.services;
 import ng.darum.auth.components.JwtUtil;
 import ng.darum.auth.dto.*;
 import ng.darum.auth.entity.User;
-import ng.darum.auth.feign.EmployeeInterface;
 import ng.darum.auth.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,9 +18,6 @@ public class AuthenticationService {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    private EmployeeInterface employeeInterface;
-
-    @Autowired
     JwtUtil jwtUtil;
 
     @Transactional
@@ -34,6 +29,7 @@ public class AuthenticationService {
         User user = User.builder()
                 .email(request.getEmail())
                 .role(request.getRole())
+                .empId(request.getEmpId())
                 .passHash(passwordEncoder.encode(request.getPassword()))
                 .build();
         User savedUser = userRepository.save(user);
@@ -58,18 +54,17 @@ public class AuthenticationService {
     }
 
     @Transactional
-    public String deleteUser(Long id){
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("No User with id:" + id + " found"));
+    public void deleteUser(Long id){
+
+       User user= userRepository.findByEmpId(id).orElseThrow(() -> new IllegalArgumentException("User does not exist with the given employee id"));
 
         // Delete user
-        userRepository.deleteById(id);
-        return "Success";
+        userRepository.deleteById(user.getId());
     }
 
     @Transactional
     public UserResponse updateUser(Long id, UserRequest request){
-        User user = userRepository.findById(id)
+        User user = userRepository.findByEmpId(id)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         boolean userUpdated = false;
@@ -96,12 +91,6 @@ public class AuthenticationService {
         User savedUser = userUpdated ? userRepository.save(user) : user;
 
         return userToUserResponse(savedUser);
-    }
-
-    public UserResponse findUserById(Long id){
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("No user was found with the given id"));
-        return userToUserResponse(user);
     }
     private UserResponse userToUserResponse(User user){
         return UserResponse.builder()

@@ -1,6 +1,6 @@
 package ng.darum.employee.service;
 
-import ng.darum.commons.dto.UserCreatedEvent;
+import ng.darum.commons.dto.UserEvent;
 import ng.darum.employee.dto.EmployeeRequest;
 import ng.darum.employee.entity.Employee;
 import ng.darum.employee.enums.Role;
@@ -19,7 +19,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
 
 /**
@@ -42,7 +41,7 @@ class EmployeeServiceTest {
 
     // Captor for capturing Kafka events
     @Captor
-    private ArgumentCaptor<UserCreatedEvent> userEventCaptor;
+    private ArgumentCaptor<UserEvent> userEventCaptor;
 
     /**
      * Test createEmployee method with valid EmployeeRequest
@@ -71,7 +70,7 @@ class EmployeeServiceTest {
 
 
         when(employeeRepository.save(any(Employee.class))).thenReturn(employeeToSave);
-        doNothing().when(kafkaProducerService).publishUserCreatedEvent(any(UserCreatedEvent.class));
+        doNothing().when(kafkaProducerService).publishUserCreatedEvent(any(UserEvent.class));
 
         // Act
         Employee result = employeeService.createEmployee(employeeRequest);
@@ -86,7 +85,7 @@ class EmployeeServiceTest {
 
         // Verify Kafka event was published with correct data
         verify(kafkaProducerService, times(1)).publishUserCreatedEvent(userEventCaptor.capture());
-        UserCreatedEvent capturedEvent = userEventCaptor.getValue();
+        UserEvent capturedEvent = userEventCaptor.getValue();
         assertEquals("john.doe@company.com", capturedEvent.getEmail(), "Email should match");
         assertEquals("securePassword", capturedEvent.getPassword(), "Password should match");
         assertEquals(Role.ADMIN, capturedEvent.getRole(), "Role should match");
@@ -116,7 +115,7 @@ class EmployeeServiceTest {
         savedEmployee.setDepartmentId(2L);
 
         when(employeeRepository.save(any(Employee.class))).thenReturn(savedEmployee);
-        doNothing().when(kafkaProducerService).publishUserCreatedEvent(any(UserCreatedEvent.class));
+        doNothing().when(kafkaProducerService).publishUserCreatedEvent(any(UserEvent.class));
 
         // Act
         Employee result = employeeService.createEmployee(employeeRequest);
@@ -128,7 +127,7 @@ class EmployeeServiceTest {
         assertEquals("Smith", result.getLastName(), "Last name should match");
 
         // Verify Kafka event was published (even with null email/password/role)
-        verify(kafkaProducerService, times(1)).publishUserCreatedEvent(any(UserCreatedEvent.class));
+        verify(kafkaProducerService, times(1)).publishUserCreatedEvent(any(UserEvent.class));
         verify(employeeRepository, times(1)).save(any(Employee.class));
     }
 
@@ -148,7 +147,7 @@ class EmployeeServiceTest {
         existingEmployee.setEmployeeId("OLD001");
         existingEmployee.setDepartmentId(1L);
 
-        Employee updateData = new Employee();
+        EmployeeRequest updateData = new EmployeeRequest();
         updateData.setFirstName("New First");
         updateData.setLastName("New Last");
         updateData.setEmployeeId("NEW001");
@@ -186,7 +185,7 @@ class EmployeeServiceTest {
     void testUpdateEmployee_WhenEmployeeDoesNotExist_ShouldThrowException() {
         // Arrange
         Long employeeId = 999L;
-        Employee updateData = new Employee();
+        EmployeeRequest updateData = new EmployeeRequest();
         updateData.setFirstName("Non-existent Employee");
 
         when(employeeRepository.findById(employeeId)).thenReturn(Optional.empty());
@@ -216,7 +215,7 @@ class EmployeeServiceTest {
         existingEmployee.setEmployeeId("ORIG001");
         existingEmployee.setDepartmentId(1L);
 
-        Employee updateData = new Employee();
+        EmployeeRequest updateData = new EmployeeRequest();
         updateData.setFirstName("Updated First");
         // Last name and employee ID are null, so they should remain unchanged
 

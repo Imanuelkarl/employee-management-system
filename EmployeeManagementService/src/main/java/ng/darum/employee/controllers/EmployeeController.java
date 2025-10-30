@@ -1,6 +1,7 @@
 package ng.darum.employee.controllers;
 
 import jakarta.servlet.http.HttpServletRequest;
+import ng.darum.employee.component.JwtUtil;
 import ng.darum.employee.dto.EmployeeRequest;
 import ng.darum.employee.entity.Employee;
 import ng.darum.employee.service.EmployeeService;
@@ -8,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Objects;
 
 /**
  * Employee controller handling CRUD operations for employees.
@@ -20,6 +23,8 @@ public class EmployeeController extends BaseController {
     @Autowired
     private EmployeeService employeeService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
     /**
      * Creates a new employee
      */
@@ -39,7 +44,7 @@ public class EmployeeController extends BaseController {
      */
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<?> updateEmployee(@PathVariable Long id, @RequestBody Employee employee,
+    public ResponseEntity<?> updateEmployee(@PathVariable Long id, @RequestBody EmployeeRequest employee,
                                             HttpServletRequest request) {
         try {
             Object response = employeeService.updateEmployee(id, employee);
@@ -93,13 +98,29 @@ public class EmployeeController extends BaseController {
      * Retrieves employees by department ID
      */
     @GetMapping("/department/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
     public ResponseEntity<?> getDepartmentEmployees(@PathVariable Long id, HttpServletRequest request) {
         try {
+            /*String userEmail = jwtUtil.extractEmail(extractToken(request));    // extract role from JWT claims
+            String role = jwtUtil.extractRole(extractToken(request));
+            Employee employee =employeeService.findEmployeeByEmail(userEmail);
+            if(!Objects.equals(employee.getDepartmentId(), id)||!role.equalsIgnoreCase("ADMIN")){
+                throw new IllegalAccessException("You can't access this department Info");
+            }*/
+
             return buildSuccess("Department employees retrieved successfully",
                     employeeService.getDepartmentEmployees(id));
+
         } catch (Exception e) {
             return handleException(e, request, "GET_DEPARTMENT_EMPLOYEES");
         }
     }
+    public String extractToken(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            return header.substring(7);
+        }
+        throw new RuntimeException("Missing or invalid Authorization header");
+    }
+
 }

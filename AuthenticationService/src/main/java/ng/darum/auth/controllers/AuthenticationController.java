@@ -3,10 +3,11 @@ package ng.darum.auth.controllers;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import ng.darum.auth.dto.AuthResponse;
-import ng.darum.auth.dto.ErrorResponse;
 import ng.darum.auth.dto.UserRequest;
 import ng.darum.auth.dto.UserResponse;
 import ng.darum.auth.services.AuthenticationService;
+import ng.darum.commons.dto.ErrorResponse;
+import ng.darum.commons.dto.ServerResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -41,7 +42,7 @@ public class AuthenticationController {
             response.addHeader("Set-Cookie", cookie.toString());
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                    .body(authResponse);
+                    .body(ServerResponse.builder().status("success").message("Login Successfully").data(authResponse).build());
         } catch (Exception e) {
             return handleException(e, httpRequest, "USER_LOGIN");
         }
@@ -65,7 +66,8 @@ public class AuthenticationController {
                 userMessage,
                 path,
                 ZonedDateTime.now(),
-                errorId
+                errorId,
+                null
         );
 
         // Add additional details for debugging
