@@ -4,7 +4,6 @@ import ng.darum.auth.components.JwtUtil;
 import ng.darum.auth.dto.*;
 import ng.darum.auth.entity.User;
 import ng.darum.auth.enums.Role;
-import ng.darum.auth.feign.EmployeeInterface;
 import ng.darum.auth.repository.UserRepository;
 import ng.darum.auth.services.AuthenticationService;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,9 +26,6 @@ class AuthenticationServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
-
-    @Mock
-    private EmployeeInterface employeeInterface;
 
     @Mock
     private JwtUtil jwtUtil;
@@ -127,9 +123,9 @@ class AuthenticationServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         doNothing().when(userRepository).deleteById(1L);
 
-        String response = authenticationService.deleteUser(1L);
+         authenticationService.deleteUser(1L);
 
-        assertThat(response).isEqualTo("Success");
+
         verify(userRepository).deleteById(1L);
     }
 
@@ -166,25 +162,4 @@ class AuthenticationServiceTest {
         verify(userRepository).save(any(User.class));
     }
 
-    // --------------------------------------------
-    // FIND USER BY ID
-    // --------------------------------------------
-    @Test
-    void testFindUserById_Success() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
-
-        UserResponse response = authenticationService.findUserById(1L);
-
-        assertThat(response.getEmail()).isEqualTo("john@example.com");
-        assertThat(response.getRole()).isEqualTo(Role.ADMIN);
-    }
-
-    @Test
-    void testFindUserById_ThrowsError_WhenNotFound() {
-        when(userRepository.findById(1L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> authenticationService.findUserById(1L))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("No user was found");
-    }
 }

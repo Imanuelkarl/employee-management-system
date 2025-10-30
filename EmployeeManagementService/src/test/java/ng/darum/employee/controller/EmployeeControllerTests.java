@@ -276,7 +276,7 @@ class EmployeeControllerTest {
                 .andExpect(jsonPath("$.message").value("Employees retrieved successfully"))
                 .andExpect(jsonPath("$.data[0].firstName").value("John"));
     }
-    
+
     // ---------------------------
     // GET DEPARTMENT EMPLOYEES (Access control logic)
     // ---------------------------

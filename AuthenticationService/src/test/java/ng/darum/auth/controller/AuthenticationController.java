@@ -37,7 +37,6 @@ class AuthenticationControllerTest {
     private ObjectMapper objectMapper;
 
     private UserRequest userRequest;
-    private UserResponse userResponse;
     private AuthResponse authResponse;
 
     @BeforeEach
@@ -45,11 +44,8 @@ class AuthenticationControllerTest {
         userRequest = UserRequest.builder()
                 .email("test@example.com")
                 .password("12345")
-                .firstName("John")
-                .lastName("Doe")
+                .role(Role.EMPLOYEE)
                 .build();
-
-        userResponse = new UserResponse(1L,  "test@example.com", Role.EMPLOYEE);
 
         authResponse = new AuthResponse(1L,  "test@example.com", Role.EMPLOYEE,"fake-jwt-token");
     }
@@ -62,7 +58,7 @@ class AuthenticationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(userRequest)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").value("fake-jwt-token"))
+                .andExpect(jsonPath("$.data.token").value("fake-jwt-token"))
                 .andExpect(header().exists("Set-Cookie"));
     }
 
